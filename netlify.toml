@@ -1,25 +1,18 @@
-# Netlify 配置文件
-
 [build]
   base = "stage1st-web"
   command = "npm install && npm run build"
-  publish = "dist/spa"
+  publish = "dist"
 
 [build.environment]
   NODE_VERSION = "20"
-  NPM_VERSION = "10"
 
-# 重定向规则（SPA应用）
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
 
-# Headers（安全头）
 [[headers]]
   for = "/*"
   [headers.values]
     X-Frame-Options = "DENY"
     X-XSS-Protection = "1; mode=block"
-    X-Content-Type-Options = "nosniff"
-    Referrer-Policy = "strict-origin-when-cross-origin"
