@@ -24,4 +24,4 @@ app.use(Quasar, {
   }
 })
 
-app.mount('#q-app')
+app.mount('#app')
