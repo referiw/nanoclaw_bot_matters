@@ -1,0 +1,45 @@
+# Netlify 配置文件
+# 支持多项目部署
+
+# 默认构建配置（如果有根目录项目）
+[build]
+  command = "echo 'No root project' && exit 0"
+  publish = "."
+
+# 全局配置
+[build.environment]
+  NODE_VERSION = "20"
+
+# ========== 项目1: Stage1st 战报前端 ==========
+# 访问路径: /stage1st/
+# 或者部署为独立站点
+
+# ========== 如何部署多个项目 ==========
+# 方式1: 子目录部署（当前配置）
+# 方式2: 创建多个Netlify站点，每个站点指定不同的base目录
+
+# 生产环境配置
+[context.production]
+  command = "npm run build"
+
+# 预览环境配置（PR预览）
+[context.deploy-preview]
+  command = "npm run build"
+
+# 分支部署配置
+[context.branch-deploy]
+  command = "npm run build"
+
+# 重定向规则（SPA应用）
+# [[redirects]]
+#   from = "/*"
+#   to = "/index.html"
+#   status = 200
+
+# Headers（安全头）
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
