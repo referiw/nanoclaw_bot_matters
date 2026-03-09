@@ -1,9 +1,9 @@
 import { createApp } from 'vue'
 import { Quasar, Notify, Loading, Dialog } from 'quasar'
-import quasarLang from 'quasar/lang/zh-CN.esm'
+import quasarLang from 'quasar/lang/zh-CN.esm.prod'
 
 import App from './App.vue'
-import router from './router'
+import router from './router.js'
 
 import '@quasar/extras/roboto-font/roboto-font.css'
 import '@quasar/extras/material-icons/material-icons.css'
