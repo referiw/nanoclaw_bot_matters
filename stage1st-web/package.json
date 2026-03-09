@@ -9,14 +9,10 @@
   },
   "dependencies": {
     "vue": "^3.4.0",
-    "vue-router": "^4.2.5",
-    "quasar": "^2.14.0",
-    "@quasar/extras": "^1.16.4"
+    "vue-router": "^4.2.5"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.0",
-    "@quasar/vite-plugin": "^1.6.0",
-    "vite": "^5.0.0",
-    "sass": "^1.69.0"
+    "vite": "^5.0.0"
   }
 }
