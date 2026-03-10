@@ -31,7 +31,6 @@
       <div class="stat-item"><div class="stat-number">{{ reportData.uniqueAuthors }}</div><div class="stat-label">用户</div></div>
       <div class="stat-item"><div class="stat-number">{{ reportData.keywords?.length || 0 }}</div><div class="stat-label">关键词</div></div>
       <div class="stat-item"><div class="stat-number">{{ reportData.images?.length || 0 }}</div><div class="stat-label">图片</div></div>
-      <div class="stat-item"><div class="stat-number">{{ reportData.investmentAdvice?.length || 0 }}</div><div class="stat-label">建议</div></div>
     </div>
 
     <!-- 主内容 -->
@@ -44,15 +43,17 @@
           <div class="source">—— {{ item.author }} ({{ item.floor }}楼)</div>
         </article>
 
+        <!-- 图片展示 -->
         <h2 class="section-header" v-if="reportData.images?.length">🖼️ 论坛图片</h2>
         <div v-if="reportData.images?.length" class="images-grid">
           <div v-for="(img, i) in reportData.images" :key="i" class="image-item">
-            <a :href="img.url" target="_blank">
-              <img :src="img.base64 || img.url" alt="论坛图片" loading="lazy">
+            <a :href="img.url" target="_blank" rel="noopener noreferrer">
+              <img :src="img.base64 || img.url" alt="论坛图片" loading="lazy" @error="onImageError($event, img)">
             </a>
             <div class="image-info">{{ img.author }} ({{ img.floor }}楼)</div>
           </div>
         </div>
+        <p v-if="reportData.images?.length" class="image-count">点击图片查看原图 | 共 {{ reportData.images.length }} 张</p>
 
         <h2 class="section-header">💬 热门评论</h2>
         <div v-for="(c, i) in reportData.hotComments" :key="'c'+i" 
@@ -80,22 +81,8 @@
         <div class="keywords" v-if="reportData.keywords?.length">
           <h4>🏷️ 关键词</h4>
           <div class="tag-cloud">
-            <span v-for="(kw, i) in reportData.keywords" :key="i" class="tag" :class="{ hot: i < 5 }">{{ kw[0] || kw }}</span>
+            <span v-for="(kw, i) in reportData.keywords" :key="i" class="tag" :class="{ hot: i < 5 }">{{ kw[0] || kw.word || kw }}</span>
           </div>
-        </div>
-
-        <div class="author-section">
-          <h4>👥 活跃用户</h4>
-          <table class="author-table">
-            <thead><tr><th>#</th><th>用户</th><th>发言</th></tr></thead>
-            <tbody>
-              <tr v-for="(author, i) in reportData.topAuthors" :key="i">
-                <td>{{ i + 1 }}</td>
-                <td>{{ author.name || author[0] }}</td>
-                <td style="text-align:center">{{ author.count || author[1] }}</td>
-              </tr>
-            </tbody>
-          </table>
         </div>
       </aside>
     </div>
@@ -143,12 +130,16 @@ const formatTime = (time) => {
   return new Date(time).toLocaleString('zh-CN')
 }
 
+const onImageError = (event, img) => {
+  // 图片加载失败时显示占位符
+  event.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjEyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTUwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iI2YwZjBmMCIvPjx0ZXh0IHg9Ijc1IiB5PSI2MCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+图片加载失败</text></svg>'
+}
+
 onMounted(async () => {
   try {
     const res = await fetch('/data/report.json')
     if (res.ok) {
       const data = await res.json()
-      // 处理数据格式
       if (data.latestPosts && !data.newsItems) {
         data.newsItems = data.latestPosts.slice(0, 10)
       }
@@ -161,7 +152,7 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* 报纸风格 - 与HTML战报完全一致 */
+/* 报纸风格 */
 .newspaper { max-width: 1200px; margin: 0 auto; background: #fff; box-shadow: 0 0 30px rgba(0,0,0,0.12); font-family: 'Noto Sans SC', -apple-system, sans-serif; }
 .masthead { background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%); color: #fff; text-align: center; padding: 25px 15px; }
 .masthead h1 { font-size: clamp(32px, 10vw, 72px); font-weight: 900; letter-spacing: clamp(5px, 3vw, 20px); margin: 0; }
@@ -173,7 +164,7 @@ onMounted(async () => {
 .headline-section { padding: 25px 15px; text-align: center; background: linear-gradient(180deg, #fff 0%, #fafafa 100%); border-bottom: 3px double #8B0000; }
 .headline-section h2 { font-size: clamp(24px, 6vw, 42px); color: #8B0000; margin: 0 0 12px; }
 .headline-section .lead { font-size: clamp(13px, 3vw, 16px); max-width: 900px; margin: 0 auto; text-align: justify; padding: 0 10px; color: #333; }
-.stats-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); background: #1a1a1a; }
+.stats-bar { display: grid; grid-template-columns: repeat(4, 1fr); background: #1a1a1a; }
 .stat-item { padding: 15px 10px; text-align: center; border-right: 1px solid rgba(255,255,255,0.1); }
 .stat-item:last-child { border-right: none; }
 .stat-number { font-size: clamp(20px, 5vw, 32px); font-weight: bold; color: #D4AF37; }
@@ -192,8 +183,10 @@ onMounted(async () => {
 .news-item .source { font-size: 11px; color: #999; font-style: italic; margin-top: 8px; }
 .images-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin: 15px 0; }
 .image-item { border-radius: 8px; overflow: hidden; background: #f0f0f0; }
-.image-item img { width: 100%; height: 120px; object-fit: cover; display: block; cursor: pointer; }
-.image-item .image-info { font-size: 10px; color: #666; padding: 5px; background: #f9f9f9; }
+.image-item img { width: 100%; height: 120px; object-fit: cover; display: block; cursor: pointer; transition: transform 0.3s; }
+.image-item img:hover { transform: scale(1.05); }
+.image-item .image-info { font-size: 10px; color: #666; padding: 5px; background: #f9f9f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.image-count { font-size: 11px; color: #999; margin-top: 8px; }
 .investment-box { background: linear-gradient(135deg, #0d1f2d 0%, #1a3a4a 100%); color: #fff; padding: 18px; margin-bottom: 20px; border-radius: 5px; }
 .investment-box h3 { color: #D4AF37; font-size: clamp(14px, 3vw, 18px); margin: 0 0 12px; padding-bottom: 8px; border-bottom: 2px solid #D4AF37; }
 .investment-item { margin-bottom: 12px; padding: 10px 12px; background: rgba(255,255,255,0.05); border-left: 3px solid #D4AF37; }
@@ -211,12 +204,6 @@ onMounted(async () => {
 .keywords .tag-cloud { display: flex; flex-wrap: wrap; gap: 6px; }
 .keywords .tag { background: #1a1a1a; color: #fff; padding: 3px 10px; font-size: 10px; border-radius: 3px; }
 .keywords .tag.hot { background: #8B0000; }
-.author-section { margin-top: 20px; padding: 12px; background: #fff; border-radius: 5px; border: 1px solid #ddd; }
-.author-section h4 { font-size: 13px; color: #8B0000; margin: 0 0 10px; padding-bottom: 6px; border-bottom: 2px solid #8B0000; }
-.author-table { width: 100%; font-size: 11px; border-collapse: collapse; }
-.author-table th, .author-table td { padding: 5px; text-align: left; }
-.author-table th { background: #f5f5f5; }
-.author-table tr:nth-child(even) { background: #fafafa; }
 .footer { background: #1a1a1a; color: #fff; padding: 25px 15px; text-align: center; }
 .footer h3 { font-size: clamp(18px, 4vw, 24px); letter-spacing: 5px; margin: 0 0 8px; color: #D4AF37; }
 .footer p { margin: 5px 0; font-size: 12px; color: rgba(255,255,255,0.6); }
