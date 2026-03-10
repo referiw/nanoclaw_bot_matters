@@ -1,81 +1,98 @@
 <template>
-  <div class="report-page">
+  <div class="newspaper">
     <!-- 报头 -->
     <header class="masthead">
-      <h1 class="masthead-title">S1 战报</h1>
-      <div class="masthead-subtitle">S1 OBSERVER | 中东局势深度观察</div>
-      <div class="masthead-date">{{ reportDate }} | 帖子: #{{ reportData.threadId }} | {{ reportData.totalPosts }}条回复</div>
+      <h1>S1 战报</h1>
+      <div class="subtitle">S1 OBSERVER | 中东局势深度观察</div>
+      <div class="date-line">{{ reportDate }} | 帖子: #{{ reportData.threadId }} | 新增 {{ reportData.newPosts || reportData.totalPosts }}条回复</div>
     </header>
 
     <!-- 导航栏 -->
     <nav class="nav-bar">
-      <span>参与: <strong>{{ reportData.uniqueAuthors }}</strong>人</span>
+      <span>参与: <span class="highlight">{{ reportData.uniqueAuthors }}</span>人</span>
       <span>{{ todayDate }}</span>
       <span>Stage1st 论坛</span>
+      <span v-if="reportData.floorRange">楼号: {{ reportData.floorRange.start }} - {{ reportData.floorRange.end }}</span>
     </nav>
 
     <!-- 标题区 -->
     <section class="headline-section">
-      <h2 class="headline-title">中东局势战报</h2>
-      <p class="headline-lead">
-        基于Stage1st论坛专楼实时数据，涵盖最新战况、论坛热评及分析。
-        楼号范围: {{ reportData.floorRange?.start || '-' }} - {{ reportData.floorRange?.end || '-' }}
+      <h2>中东局势战报</h2>
+      <p class="lead">
+        基于Stage1st论坛专楼实时数据，涵盖最新战况、论坛热评及金融投资建议。
+        {{ reportData.totalPosts }}条回复，{{ reportData.uniqueAuthors }}位用户参与。
+        <span v-if="reportData.generatedAt">生成时间: {{ formatTime(reportData.generatedAt) }}</span>
       </p>
     </section>
 
     <!-- 统计栏 -->
     <div class="stats-bar">
-      <div class="stat-item">
-        <div class="stat-number">{{ reportData.totalPosts || 0 }}</div>
-        <div class="stat-label">回复</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-number">{{ reportData.uniqueAuthors || 0 }}</div>
-        <div class="stat-label">用户</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-number">{{ reportData.topAuthors?.length || 0 }}</div>
-        <div class="stat-label">活跃</div>
-      </div>
+      <div class="stat-item"><div class="stat-number">{{ reportData.totalPosts }}</div><div class="stat-label">回复</div></div>
+      <div class="stat-item"><div class="stat-number">{{ reportData.uniqueAuthors }}</div><div class="stat-label">用户</div></div>
+      <div class="stat-item"><div class="stat-number">{{ reportData.keywords?.length || 0 }}</div><div class="stat-label">关键词</div></div>
+      <div class="stat-item"><div class="stat-number">{{ reportData.images?.length || 0 }}</div><div class="stat-label">图片</div></div>
+      <div class="stat-item"><div class="stat-number">{{ reportData.investmentAdvice?.length || 0 }}</div><div class="stat-label">建议</div></div>
     </div>
 
     <!-- 主内容 -->
     <div class="content-grid">
       <main class="main-content">
-        <h3 class="section-header">📰 最新动态</h3>
-        <article v-for="(post, i) in reportData.latestPosts" :key="i" class="news-item">
-          <h4><span class="tag">动态</span>{{ post.author }} ({{ post.floor }}楼)</h4>
-          <p>{{ post.content }}</p>
-          <div class="source">{{ post.time }}</div>
+        <h2 class="section-header">📊 最新动态</h2>
+        <article v-for="(item, i) in reportData.newsItems" :key="i" class="news-item">
+          <h3><span class="tag">动态</span>{{ item.content?.substring(0, 45) }}...</h3>
+          <p>{{ item.content?.substring(0, 280) }}{{ item.content?.length > 280 ? '...' : '' }}</p>
+          <div class="source">—— {{ item.author }} ({{ item.floor }}楼)</div>
         </article>
 
-        <h3 class="section-header">💬 热门评论</h3>
-        <div v-for="(comment, i) in reportData.hotComments" :key="'c'+i" 
+        <h2 class="section-header" v-if="reportData.images?.length">🖼️ 论坛图片</h2>
+        <div v-if="reportData.images?.length" class="images-grid">
+          <div v-for="(img, i) in reportData.images" :key="i" class="image-item">
+            <a :href="img.url" target="_blank">
+              <img :src="img.base64 || img.url" alt="论坛图片" loading="lazy">
+            </a>
+            <div class="image-info">{{ img.author }} ({{ img.floor }}楼)</div>
+          </div>
+        </div>
+
+        <h2 class="section-header">💬 热门评论</h2>
+        <div v-for="(c, i) in reportData.hotComments" :key="'c'+i" 
              class="comment" :class="{ highlighted: i < 3 }">
-          <span class="author">{{ comment.author }} ({{ comment.floor }}楼):</span>
-          <p class="content">{{ comment.content }}</p>
+          <span class="author">{{ c.author }} ({{ c.floor }}楼):</span>
+          <p class="content">{{ c.content }}</p>
         </div>
       </main>
 
       <aside class="sidebar">
         <div class="investment-box">
           <h3>💰 投资建议</h3>
-          <div class="investment-item">
+          <div v-for="(adv, i) in reportData.investmentAdvice" :key="i" class="investment-item">
+            <div class="category">{{ adv.category }} - {{ adv.trend }}</div>
+            <p>{{ adv.content }}</p>
+            <span class="impact" :class="adv.impact">{{ adv.impact === 'positive' ? '看多' : adv.impact === 'negative' ? '看空' : '中性' }}</span>
+          </div>
+          <div v-if="!reportData.investmentAdvice?.length" class="investment-item">
             <div class="category">综合 - 观望</div>
             <p>基于论坛讨论热点分析，建议保持谨慎态度。</p>
             <span class="impact neutral">中性</span>
           </div>
         </div>
 
-        <div class="keywords-box">
+        <div class="keywords" v-if="reportData.keywords?.length">
+          <h4>🏷️ 关键词</h4>
+          <div class="tag-cloud">
+            <span v-for="(kw, i) in reportData.keywords" :key="i" class="tag" :class="{ hot: i < 5 }">{{ kw[0] || kw }}</span>
+          </div>
+        </div>
+
+        <div class="author-section">
           <h4>👥 活跃用户</h4>
           <table class="author-table">
             <thead><tr><th>#</th><th>用户</th><th>发言</th></tr></thead>
             <tbody>
               <tr v-for="(author, i) in reportData.topAuthors" :key="i">
                 <td>{{ i + 1 }}</td>
-                <td>{{ author.name }}</td>
-                <td style="text-align:center">{{ author.count }}</td>
+                <td>{{ author.name || author[0] }}</td>
+                <td style="text-align:center">{{ author.count || author[1] }}</td>
               </tr>
             </tbody>
           </table>
@@ -87,7 +104,7 @@
     <footer class="footer">
       <h3>S1 OBSERVER</h3>
       <p>中东局势深度观察 | Stage1st 论坛 #{{ reportData.threadId }}</p>
-      <p class="disclaimer">免责声明：本战报内容整理自网络论坛，仅供信息参考。Generated by Claude Code</p>
+      <p class="disclaimer">免责声明：本战报内容整理自网络论坛，仅供信息参考。投资建议仅供参考，不构成决策依据。Generated by Claude Code</p>
     </footer>
   </div>
 </template>
@@ -98,11 +115,17 @@ import { ref, computed, onMounted } from 'vue'
 const reportData = ref({
   threadId: '2275908',
   totalPosts: 0,
+  newPosts: 0,
   uniqueAuthors: 0,
   floorRange: {},
   topAuthors: [],
   latestPosts: [],
-  hotComments: []
+  newsItems: [],
+  hotComments: [],
+  keywords: [],
+  images: [],
+  investmentAdvice: [],
+  generatedAt: null
 })
 
 const todayDate = computed(() => {
@@ -116,11 +139,20 @@ const reportDate = computed(() => {
   return todayDate.value
 })
 
+const formatTime = (time) => {
+  return new Date(time).toLocaleString('zh-CN')
+}
+
 onMounted(async () => {
   try {
     const res = await fetch('/data/report.json')
     if (res.ok) {
-      reportData.value = await res.json()
+      const data = await res.json()
+      // 处理数据格式
+      if (data.latestPosts && !data.newsItems) {
+        data.newsItems = data.latestPosts.slice(0, 10)
+      }
+      reportData.value = data
     }
   } catch (e) {
     console.error('Failed to load report data:', e)
@@ -129,301 +161,64 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.report-page {
-  background: #f5f5f0;
-  min-height: 100vh;
-  font-family: 'Noto Sans SC', -apple-system, sans-serif;
-  max-width: 100vw;
-  overflow-x: hidden;
-}
-
-.masthead {
-  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);
-  color: white;
-  text-align: center;
-  padding: 25px 15px;
-}
-
-.masthead-title {
-  font-size: clamp(32px, 10vw, 72px);
-  font-weight: 900;
-  letter-spacing: clamp(5px, 3vw, 20px);
-  margin: 0;
-}
-
-.masthead-subtitle {
-  font-size: clamp(10px, 3vw, 14px);
-  letter-spacing: clamp(3px, 2vw, 8px);
-  margin-top: 10px;
-  color: #D4AF37;
-}
-
-.masthead-date {
-  margin-top: 15px;
-  padding-top: 15px;
-  border-top: 1px solid rgba(255,255,255,0.2);
-  font-size: clamp(10px, 2.5vw, 13px);
-  letter-spacing: 2px;
-  color: rgba(255,255,255,0.8);
-}
-
-.nav-bar {
-  background: #8B0000;
-  padding: 10px 15px;
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 8px;
-  color: white;
-  font-size: clamp(10px, 2.5vw, 12px);
-}
-
-.nav-bar strong { color: #D4AF37; }
-
-.headline-section {
-  padding: 25px 15px;
-  text-align: center;
-  background: linear-gradient(180deg, #fff 0%, #fafafa 100%);
-  border-bottom: 3px double #8B0000;
-}
-
-.headline-title {
-  font-size: clamp(24px, 6vw, 42px);
-  color: #8B0000;
-  margin: 0 0 12px;
-}
-
-.headline-lead {
-  font-size: clamp(13px, 3vw, 16px);
-  max-width: 900px;
-  margin: 0 auto;
-  text-align: justify;
-  padding: 0 10px;
-  color: #333;
-}
-
-.stats-bar {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  background: #1a1a1a;
-}
-
-.stat-item {
-  padding: 15px 10px;
-  text-align: center;
-  border-right: 1px solid rgba(255,255,255,0.1);
-}
-
+/* 报纸风格 - 与HTML战报完全一致 */
+.newspaper { max-width: 1200px; margin: 0 auto; background: #fff; box-shadow: 0 0 30px rgba(0,0,0,0.12); font-family: 'Noto Sans SC', -apple-system, sans-serif; }
+.masthead { background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%); color: #fff; text-align: center; padding: 25px 15px; }
+.masthead h1 { font-size: clamp(32px, 10vw, 72px); font-weight: 900; letter-spacing: clamp(5px, 3vw, 20px); margin: 0; }
+.masthead .subtitle { font-size: clamp(10px, 3vw, 14px); letter-spacing: clamp(3px, 2vw, 8px); margin-top: 10px; color: #D4AF37; }
+.masthead .date-line { margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.2); font-size: clamp(10px, 2.5vw, 13px); letter-spacing: 2px; }
+.nav-bar { background: #8B0000; padding: 10px 15px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.nav-bar span { color: #fff; font-size: clamp(10px, 2.5vw, 12px); }
+.nav-bar .highlight { color: #D4AF37; font-weight: bold; }
+.headline-section { padding: 25px 15px; text-align: center; background: linear-gradient(180deg, #fff 0%, #fafafa 100%); border-bottom: 3px double #8B0000; }
+.headline-section h2 { font-size: clamp(24px, 6vw, 42px); color: #8B0000; margin: 0 0 12px; }
+.headline-section .lead { font-size: clamp(13px, 3vw, 16px); max-width: 900px; margin: 0 auto; text-align: justify; padding: 0 10px; color: #333; }
+.stats-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); background: #1a1a1a; }
+.stat-item { padding: 15px 10px; text-align: center; border-right: 1px solid rgba(255,255,255,0.1); }
 .stat-item:last-child { border-right: none; }
-
-.stat-number {
-  font-size: clamp(20px, 5vw, 32px);
-  font-weight: bold;
-  color: #D4AF37;
-}
-
-.stat-label {
-  font-size: clamp(9px, 2vw, 11px);
-  color: rgba(255,255,255,0.7);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-top: 3px;
-}
-
-.content-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-}
-
-@media (min-width: 900px) {
-  .content-grid { grid-template-columns: 2fr 1fr; }
-}
-
-.main-content {
-  padding: 20px 15px;
-  border-bottom: 1px solid #ddd;
-}
-
-@media (min-width: 900px) {
-  .main-content {
-    border-bottom: none;
-    border-right: 1px solid #ddd;
-    padding: 30px;
-  }
-}
-
-.sidebar {
-  padding: 20px 15px;
-  background: #fafafa;
-}
-
-.section-header {
-  font-size: clamp(18px, 4vw, 22px);
-  color: #8B0000;
-  padding-bottom: 10px;
-  border-bottom: 3px double #8B0000;
-  margin-bottom: 20px;
-}
-
-.news-item {
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 1px dotted #ccc;
-}
-
-.news-item:last-child { border-bottom: none; margin-bottom: 0; }
-
-.news-item h4 {
-  font-size: clamp(13px, 3vw, 15px);
-  margin: 0 0 8px;
-  line-height: 1.4;
-}
-
-.news-item .tag {
-  background: #8B0000;
-  color: white;
-  font-size: 9px;
-  padding: 2px 6px;
-  margin-right: 8px;
-}
-
-.news-item p {
-  font-size: clamp(12px, 3vw, 14px);
-  text-align: justify;
-  line-height: 1.8;
-  margin: 0;
-  color: #333;
-}
-
-.news-item .source {
-  font-size: 11px;
-  color: #999;
-  font-style: italic;
-  margin-top: 8px;
-}
-
-.comment {
-  padding: 12px;
-  background: #f9f9f9;
-  margin-bottom: 12px;
-  border-left: 3px solid #ccc;
-}
-
-.comment.highlighted {
-  border-left-color: #8B0000;
-  background: #fff8f0;
-}
-
-.comment .author {
-  font-size: 11px;
-  color: #8B0000;
-  font-weight: bold;
-}
-
-.comment .content {
-  font-size: clamp(12px, 2.5vw, 13px);
-  margin-top: 6px;
-  line-height: 1.6;
-}
-
-.investment-box {
-  background: linear-gradient(135deg, #0d1f2d 0%, #1a3a4a 100%);
-  color: white;
-  padding: 18px;
-  margin-bottom: 20px;
-  border-radius: 5px;
-}
-
-.investment-box h3 {
-  color: #D4AF37;
-  font-size: clamp(14px, 3vw, 18px);
-  margin: 0 0 12px;
-  padding-bottom: 8px;
-  border-bottom: 2px solid #D4AF37;
-}
-
-.investment-item {
-  padding: 10px 12px;
-  background: rgba(255,255,255,0.05);
-  border-left: 3px solid #D4AF37;
-}
-
-.investment-item .category {
-  font-size: clamp(10px, 2vw, 12px);
-  color: #D4AF37;
-  letter-spacing: 1px;
-  margin-bottom: 4px;
-}
-
-.investment-item p {
-  font-size: clamp(12px, 2.5vw, 13px);
-  margin: 0;
-  color: rgba(255,255,255,0.9);
-}
-
-.impact {
-  font-size: 10px;
-  padding: 2px 8px;
-  display: inline-block;
-  margin-top: 6px;
-  border-radius: 3px;
-}
-
-.impact.neutral { background: #666; color: white; }
-
-.keywords-box {
-  padding: 12px;
-  background: white;
-  border-radius: 5px;
-  border: 1px solid #ddd;
-}
-
-.keywords-box h4 {
-  font-size: 13px;
-  color: #8B0000;
-  margin: 0 0 10px;
-  padding-bottom: 6px;
-  border-bottom: 2px solid #8B0000;
-}
-
-.author-table {
-  width: 100%;
-  font-size: 11px;
-  border-collapse: collapse;
-}
-
-.author-table th, .author-table td {
-  padding: 5px;
-  text-align: left;
-}
-
+.stat-number { font-size: clamp(20px, 5vw, 32px); font-weight: bold; color: #D4AF37; }
+.stat-label { font-size: clamp(9px, 2vw, 11px); color: rgba(255,255,255,0.7); margin-top: 3px; }
+.content-grid { display: grid; grid-template-columns: 1fr; }
+@media (min-width: 900px) { .content-grid { grid-template-columns: 2fr 1fr; } }
+.main-content { padding: 20px 15px; border-bottom: 1px solid #ddd; }
+@media (min-width: 900px) { .main-content { border-bottom: none; border-right: 1px solid #ddd; padding: 30px; } }
+.sidebar { padding: 20px 15px; background: #fafafa; }
+.section-header { font-size: clamp(18px, 4vw, 22px); color: #8B0000; padding-bottom: 10px; border-bottom: 3px double #8B0000; margin-bottom: 20px; }
+.news-item { margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px dotted #ccc; }
+.news-item:last-child { border-bottom: none; }
+.news-item h3 { font-size: clamp(14px, 3vw, 16px); margin: 0 0 8px; line-height: 1.4; }
+.news-item .tag { background: #8B0000; color: #fff; font-size: 9px; padding: 2px 6px; margin-right: 8px; }
+.news-item p { font-size: clamp(13px, 3vw, 14px); text-align: justify; line-height: 1.8; margin: 0; color: #333; }
+.news-item .source { font-size: 11px; color: #999; font-style: italic; margin-top: 8px; }
+.images-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin: 15px 0; }
+.image-item { border-radius: 8px; overflow: hidden; background: #f0f0f0; }
+.image-item img { width: 100%; height: 120px; object-fit: cover; display: block; cursor: pointer; }
+.image-item .image-info { font-size: 10px; color: #666; padding: 5px; background: #f9f9f9; }
+.investment-box { background: linear-gradient(135deg, #0d1f2d 0%, #1a3a4a 100%); color: #fff; padding: 18px; margin-bottom: 20px; border-radius: 5px; }
+.investment-box h3 { color: #D4AF37; font-size: clamp(14px, 3vw, 18px); margin: 0 0 12px; padding-bottom: 8px; border-bottom: 2px solid #D4AF37; }
+.investment-item { margin-bottom: 12px; padding: 10px 12px; background: rgba(255,255,255,0.05); border-left: 3px solid #D4AF37; }
+.investment-item .category { font-size: clamp(10px, 2vw, 12px); color: #D4AF37; margin-bottom: 4px; }
+.investment-item p { font-size: clamp(12px, 2.5vw, 13px); margin: 0; color: rgba(255,255,255,0.9); }
+.impact { font-size: 10px; padding: 2px 8px; display: inline-block; margin-top: 6px; border-radius: 3px; background: #666; color: #fff; }
+.impact.positive { background: linear-gradient(135deg, #2e7d32, #43a047); }
+.impact.negative { background: linear-gradient(135deg, #c62828, #e53935); }
+.comment { padding: 12px; background: #f9f9f9; margin-bottom: 12px; border-left: 3px solid #ccc; }
+.comment.highlighted { border-left-color: #8B0000; background: #fff8f0; }
+.comment .author { font-size: 11px; color: #8B0000; font-weight: bold; }
+.comment .content { font-size: clamp(12px, 2.5vw, 13px); margin-top: 6px; line-height: 1.6; }
+.keywords { margin-top: 20px; padding: 12px; background: #f0f0f0; border-radius: 5px; }
+.keywords h4 { font-size: 12px; color: #8B0000; margin: 0 0 10px; }
+.keywords .tag-cloud { display: flex; flex-wrap: wrap; gap: 6px; }
+.keywords .tag { background: #1a1a1a; color: #fff; padding: 3px 10px; font-size: 10px; border-radius: 3px; }
+.keywords .tag.hot { background: #8B0000; }
+.author-section { margin-top: 20px; padding: 12px; background: #fff; border-radius: 5px; border: 1px solid #ddd; }
+.author-section h4 { font-size: 13px; color: #8B0000; margin: 0 0 10px; padding-bottom: 6px; border-bottom: 2px solid #8B0000; }
+.author-table { width: 100%; font-size: 11px; border-collapse: collapse; }
+.author-table th, .author-table td { padding: 5px; text-align: left; }
 .author-table th { background: #f5f5f5; }
 .author-table tr:nth-child(even) { background: #fafafa; }
-
-.footer {
-  background: #1a1a1a;
-  color: white;
-  padding: 25px 15px;
-  text-align: center;
-}
-
-.footer h3 {
-  font-size: clamp(18px, 4vw, 24px);
-  letter-spacing: 5px;
-  margin: 0 0 8px;
-  color: #D4AF37;
-}
-
-.footer p {
-  margin: 5px 0;
-  font-size: 12px;
-  color: rgba(255,255,255,0.6);
-}
-
-.footer .disclaimer {
-  font-size: 10px;
-  color: rgba(255,255,255,0.4);
-  margin-top: 15px;
-  line-height: 1.6;
-}
+.footer { background: #1a1a1a; color: #fff; padding: 25px 15px; text-align: center; }
+.footer h3 { font-size: clamp(18px, 4vw, 24px); letter-spacing: 5px; margin: 0 0 8px; color: #D4AF37; }
+.footer p { margin: 5px 0; font-size: 12px; color: rgba(255,255,255,0.6); }
+.footer .disclaimer { font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 15px; line-height: 1.6; }
 </style>
