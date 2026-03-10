@@ -1,125 +1,428 @@
 <template>
-  <q-page class="q-pa-md">
-    <div class="text-h4 q-mb-md text-primary">📋 战报详情</div>
-    
-    <q-card class="q-mb-md" flat bordered>
-      <q-card-section class="bg-primary text-white">
-        <div class="row items-center justify-between">
-          <div>
-            <div class="text-h6">{{ reportData.title }}</div>
-            <div class="text-caption">{{ reportData.date }}</div>
-          </div>
-          <q-btn flat icon="share" label="分享" @click="shareReport" />
+  <q-page class="report-page">
+    <!-- 报头 -->
+    <div class="masthead">
+      <h1 class="masthead-title">S1 战报</h1>
+      <div class="masthead-subtitle">S1 OBSERVER | 中东局势深度观察</div>
+      <div class="masthead-date">{{ reportDate }} | 帖子: #{{ reportData.threadId }} | {{ reportData.totalPosts }}条回复</div>
+    </div>
+
+    <!-- 导航栏 -->
+    <div class="nav-bar">
+      <span>参与: <strong>{{ reportData.uniqueAuthors }}</strong>人</span>
+      <span>{{ todayDate }}</span>
+      <span>Stage1st 论坛</span>
+    </div>
+
+    <!-- 标题区 -->
+    <div class="headline-section">
+      <h2 class="headline-title">中东局势战报</h2>
+      <p class="headline-lead">
+        基于Stage1st论坛专楼实时数据，涵盖最新战况、论坛热评及分析。
+        楼号范围: {{ reportData.floorRange?.start || '-' }} - {{ reportData.floorRange?.end || '-' }}
+      </p>
+    </div>
+
+    <!-- 统计栏 -->
+    <div class="stats-bar">
+      <div class="stat-item">
+        <div class="stat-number">{{ reportData.totalPosts || 0 }}</div>
+        <div class="stat-label">回复</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">{{ reportData.uniqueAuthors || 0 }}</div>
+        <div class="stat-label">用户</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">{{ reportData.topAuthors?.length || 0 }}</div>
+        <div class="stat-label">活跃</div>
+      </div>
+    </div>
+
+    <!-- 主内容 -->
+    <div class="content-grid">
+      <div class="main-content">
+        <h3 class="section-header">📰 最新动态</h3>
+        <div v-for="(post, i) in reportData.latestPosts" :key="i" class="news-item">
+          <h4><span class="tag">动态</span>{{ post.author }} ({{ post.floor }}楼)</h4>
+          <p>{{ post.content }}</p>
+          <div class="source">{{ post.time }}</div>
         </div>
-      </q-card-section>
-      
-      <q-tabs v-model="activeTab" dense class="text-grey" active-color="primary" indicator-color="primary">
-        <q-tab name="summary" icon="summarize" label="概要" />
-        <q-tab name="keywords" icon="tag" label="关键词" />
-        <q-tab name="posts" icon="article" label="帖子" />
-        <q-tab name="advice" icon="lightbulb" label="建议" />
-      </q-tabs>
 
-      <q-separator />
+        <h3 class="section-header">💬 热门评论</h3>
+        <div v-for="(comment, i) in reportData.hotComments" :key="'c'+i" 
+             class="comment" :class="{ highlighted: i < 3 }">
+          <span class="author">{{ comment.author }} ({{ comment.floor }}楼):</span>
+          <p class="content">{{ comment.content }}</p>
+        </div>
+      </div>
 
-      <q-tab-panels v-model="activeTab" animated>
-        <q-tab-panel name="summary">
-          <div class="text-body1 q-mb-md">{{ reportData.summary }}</div>
-          <div class="row q-gutter-md">
-            <q-chip color="primary" text-color="white" icon="forum">{{ reportData.postCount }} 帖子</q-chip>
-            <q-chip color="secondary" text-color="white" icon="person">{{ reportData.userCount }} 用户</q-chip>
-            <q-chip color="accent" text-color="white" icon="visibility">{{ reportData.viewCount }} 浏览</q-chip>
+      <div class="sidebar">
+        <div class="investment-box">
+          <h3>💰 投资建议</h3>
+          <div class="investment-item">
+            <div class="category">综合 - 观望</div>
+            <p>基于论坛讨论热点分析，建议保持谨慎态度。</p>
+            <span class="impact neutral">中性</span>
           </div>
-        </q-tab-panel>
+        </div>
 
-        <q-tab-panel name="keywords">
-          <div class="q-gutter-sm">
-            <q-chip v-for="(item, index) in reportData.keywords" :key="index" 
-                    :color="getKeywordColor(index)" text-color="white" size="md">
-              {{ item.word }} ({{ item.count }})
-            </q-chip>
-          </div>
-        </q-tab-panel>
+        <div class="keywords-box">
+          <h4>👥 活跃用户</h4>
+          <table class="author-table">
+            <tr><th>#</th><th>用户</th><th>发言</th></tr>
+            <tr v-for="(author, i) in reportData.topAuthors" :key="i">
+              <td>{{ i + 1 }}</td>
+              <td>{{ author.name }}</td>
+              <td style="text-align:center">{{ author.count }}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
 
-        <q-tab-panel name="posts">
-          <q-list bordered separator>
-            <q-item v-for="post in reportData.posts" :key="post.id" clickable v-ripple>
-              <q-item-section avatar>
-                <q-avatar color="primary" text-color="white">{{ post.author[0] }}</q-avatar>
-              </q-item-section>
-              <q-item-section>
-                <q-item-label>{{ post.author }}</q-item-label>
-                <q-item-label caption lines="2">{{ post.content }}</q-item-label>
-              </q-item-section>
-              <q-item-section side top>
-                <q-item-label caption>{{ post.time }}</q-item-label>
-                <q-item-label caption>楼层 #{{ post.floor }}</q-item-label>
-              </q-item-section>
-            </q-item>
-          </q-list>
-        </q-tab-panel>
-
-        <q-tab-panel name="advice">
-          <q-card flat bordered class="bg-blue-1">
-            <q-card-section>
-              <div class="text-h6 text-blue-9">💡 AI 投资建议</div>
-            </q-card-section>
-            <q-card-section>
-              <div class="text-body1">{{ reportData.aiAdvice }}</div>
-            </q-card-section>
-            <q-card-actions>
-              <q-btn flat color="primary" icon="content_copy" label="复制" @click="copyAdvice" />
-            </q-card-actions>
-          </q-card>
-        </q-tab-panel>
-      </q-tab-panels>
-    </q-card>
+    <!-- 页脚 -->
+    <div class="footer">
+      <h3>S1 OBSERVER</h3>
+      <p>中东局势深度观察 | Stage1st 论坛 #{{ reportData.threadId }}</p>
+      <p class="disclaimer">免责声明：本战报内容整理自网络论坛，仅供信息参考。Generated by Claude Code</p>
+    </div>
   </q-page>
 </template>
 
-<script setup lang="ts">
-import { ref } from 'vue'
-import { useQuasar, copyToClipboard } from 'quasar'
-
-const $q = useQuasar()
-const activeTab = ref('summary')
+<script setup>
+import { ref, computed, onMounted } from 'vue'
 
 const reportData = ref({
-  title: 'Stage1st 每日战报',
-  date: '2026年3月10日',
-  summary: '今日论坛活跃度较高，主要讨论集中在A股市场走势、新能源板块机会以及科技股估值等方面。整体情绪偏向乐观，建议投资者保持关注。',
-  postCount: 814,
-  userCount: 156,
-  viewCount: 12580,
-  keywords: [
-    { word: 'A股', count: 128 },
-    { word: '新能源', count: 95 },
-    { word: '半导体', count: 87 },
-    { word: '医药', count: 72 },
-    { word: '消费', count: 65 },
-    { word: '科技', count: 58 },
-    { word: '金融', count: 45 },
-    { word: '港股', count: 38 }
-  ],
-  posts: [
-    { id: 1, author: '股海老手', content: '今天大盘走势不错，新能源板块表现亮眼...', time: '09:30', floor: 1 },
-    { id: 2, author: '价值投资', content: '半导体龙头业绩超预期，值得关注...', time: '10:15', floor: 2 },
-    { id: 3, author: '技术派', content: '从技术面看，短期还有上涨空间...', time: '11:00', floor: 3 }
-  ],
-  aiAdvice: '根据今日论坛讨论分析，建议关注以下投资机会：1) 新能源板块持续火热，可关注龙头企业的长期价值；2) 半导体行业景气度回升，建议逢低布局；3) 医药板块估值合理，可适当配置。风险提示：短期波动风险，注意控制仓位。'
+  threadId: '2275908',
+  totalPosts: 0,
+  uniqueAuthors: 0,
+  floorRange: {},
+  topAuthors: [],
+  latestPosts: [],
+  hotComments: []
 })
 
-function getKeywordColor(index: number) {
-  const colors = ['primary', 'secondary', 'accent', 'positive', 'warning', 'info', 'dark']
-  return colors[index % colors.length]
-}
+const todayDate = computed(() => {
+  return new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })
+})
 
-function shareReport() {
-  $q.notify({ type: 'positive', message: '链接已复制到剪贴板！' })
-}
+const reportDate = computed(() => {
+  if (reportData.value.generatedAt) {
+    return new Date(reportData.value.generatedAt).toLocaleDateString('zh-CN')
+  }
+  return todayDate.value
+})
 
-function copyAdvice() {
-  copyToClipboard(reportData.value.aiAdvice)
-  $q.notify({ type: 'positive', message: '已复制到剪贴板' })
-}
+onMounted(async () => {
+  try {
+    const res = await fetch('/data/report.json')
+    if (res.ok) {
+      reportData.value = await res.json()
+    }
+  } catch (e) {
+    console.error('Failed to load report data:', e)
+  }
+})
 </script>
+
+<style scoped>
+.report-page {
+  background: #f5f5f0;
+  min-height: 100vh;
+  font-family: 'Noto Sans SC', -apple-system, sans-serif;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+.masthead {
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);
+  color: white;
+  text-align: center;
+  padding: 25px 15px;
+}
+
+.masthead-title {
+  font-size: clamp(32px, 10vw, 72px);
+  font-weight: 900;
+  letter-spacing: clamp(5px, 3vw, 20px);
+  margin: 0;
+  color: white;
+}
+
+.masthead-subtitle {
+  font-size: clamp(10px, 3vw, 14px);
+  letter-spacing: clamp(3px, 2vw, 8px);
+  margin-top: 10px;
+  color: #D4AF37;
+}
+
+.masthead-date {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255,255,255,0.2);
+  font-size: clamp(10px, 2.5vw, 13px);
+  letter-spacing: 2px;
+  color: rgba(255,255,255,0.8);
+}
+
+.nav-bar {
+  background: #8B0000;
+  padding: 10px 15px;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: white;
+  font-size: clamp(10px, 2.5vw, 12px);
+}
+
+.nav-bar strong { color: #D4AF37; }
+
+.headline-section {
+  padding: 25px 15px;
+  text-align: center;
+  background: linear-gradient(180deg, #fff 0%, #fafafa 100%);
+  border-bottom: 3px double #8B0000;
+}
+
+.headline-title {
+  font-size: clamp(24px, 6vw, 42px);
+  color: #8B0000;
+  margin: 0 0 12px;
+}
+
+.headline-lead {
+  font-size: clamp(13px, 3vw, 16px);
+  max-width: 900px;
+  margin: 0 auto;
+  text-align: justify;
+  padding: 0 10px;
+  color: #333;
+}
+
+.stats-bar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  background: #1a1a1a;
+}
+
+.stat-item {
+  padding: 15px 10px;
+  text-align: center;
+  border-right: 1px solid rgba(255,255,255,0.1);
+}
+
+.stat-item:last-child { border-right: none; }
+
+.stat-number {
+  font-size: clamp(20px, 5vw, 32px);
+  font-weight: bold;
+  color: #D4AF37;
+}
+
+.stat-label {
+  font-size: clamp(9px, 2vw, 11px);
+  color: rgba(255,255,255,0.7);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 3px;
+}
+
+.content-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 900px) {
+  .content-grid { grid-template-columns: 2fr 1fr; }
+}
+
+.main-content {
+  padding: 20px 15px;
+  border-bottom: 1px solid #ddd;
+}
+
+@media (min-width: 900px) {
+  .main-content {
+    border-bottom: none;
+    border-right: 1px solid #ddd;
+    padding: 30px;
+  }
+}
+
+.sidebar {
+  padding: 20px 15px;
+  background: #fafafa;
+}
+
+.section-header {
+  font-size: clamp(18px, 4vw, 22px);
+  color: #8B0000;
+  padding-bottom: 10px;
+  border-bottom: 3px double #8B0000;
+  margin-bottom: 20px;
+}
+
+.news-item {
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px dotted #ccc;
+}
+
+.news-item:last-child { border-bottom: none; margin-bottom: 0; }
+
+.news-item h4 {
+  font-size: clamp(13px, 3vw, 15px);
+  margin: 0 0 8px;
+  line-height: 1.4;
+}
+
+.news-item .tag {
+  background: #8B0000;
+  color: white;
+  font-size: 9px;
+  padding: 2px 6px;
+  margin-right: 8px;
+}
+
+.news-item p {
+  font-size: clamp(12px, 3vw, 14px);
+  text-align: justify;
+  line-height: 1.8;
+  margin: 0;
+  color: #333;
+}
+
+.news-item .source {
+  font-size: 11px;
+  color: #999;
+  font-style: italic;
+  margin-top: 8px;
+}
+
+.comment {
+  padding: 12px;
+  background: #f9f9f9;
+  margin-bottom: 12px;
+  border-left: 3px solid #ccc;
+}
+
+.comment.highlighted {
+  border-left-color: #8B0000;
+  background: #fff8f0;
+}
+
+.comment .author {
+  font-size: 11px;
+  color: #8B0000;
+  font-weight: bold;
+}
+
+.comment .content {
+  font-size: clamp(12px, 2.5vw, 13px);
+  margin-top: 6px;
+  line-height: 1.6;
+}
+
+.investment-box {
+  background: linear-gradient(135deg, #0d1f2d 0%, #1a3a4a 100%);
+  color: white;
+  padding: 18px;
+  margin-bottom: 20px;
+  border-radius: 5px;
+}
+
+.investment-box h3 {
+  color: #D4AF37;
+  font-size: clamp(14px, 3vw, 18px);
+  margin: 0 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #D4AF37;
+}
+
+.investment-item {
+  padding: 10px 12px;
+  background: rgba(255,255,255,0.05);
+  border-left: 3px solid #D4AF37;
+}
+
+.investment-item .category {
+  font-size: clamp(10px, 2vw, 12px);
+  color: #D4AF37;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+.investment-item p {
+  font-size: clamp(12px, 2.5vw, 13px);
+  margin: 0;
+  color: rgba(255,255,255,0.9);
+}
+
+.impact {
+  font-size: 10px;
+  padding: 2px 8px;
+  display: inline-block;
+  margin-top: 6px;
+  border-radius: 3px;
+}
+
+.impact.neutral { background: #666; color: white; }
+
+.keywords-box {
+  padding: 12px;
+  background: white;
+  border-radius: 5px;
+  border: 1px solid #ddd;
+}
+
+.keywords-box h4 {
+  font-size: 13px;
+  color: #8B0000;
+  margin: 0 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid #8B0000;
+}
+
+.author-table {
+  width: 100%;
+  font-size: 11px;
+  border-collapse: collapse;
+}
+
+.author-table th, .author-table td {
+  padding: 5px;
+  text-align: left;
+}
+
+.author-table th { background: #f5f5f5; }
+.author-table tr:nth-child(even) { background: #fafafa; }
+
+.footer {
+  background: #1a1a1a;
+  color: white;
+  padding: 25px 15px;
+  text-align: center;
+}
+
+.footer h3 {
+  font-size: clamp(18px, 4vw, 24px);
+  letter-spacing: 5px;
+  margin: 0 0 8px;
+  color: #D4AF37;
+}
+
+.footer p {
+  margin: 5px 0;
+  font-size: 12px;
+  color: rgba(255,255,255,0.6);
+}
+
+.footer .disclaimer {
+  font-size: 10px;
+  color: rgba(255,255,255,0.4);
+  margin-top: 15px;
+  line-height: 1.6;
+}
+</style>
