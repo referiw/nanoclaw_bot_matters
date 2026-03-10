@@ -1,27 +1,27 @@
 <template>
-  <q-page class="q-pa-md index-page">
+  <div class="index-page">
     <div class="hero">
       <h1 class="hero-title">S1 战报中心</h1>
       <p class="hero-subtitle">Stage1st 论坛中东局势专楼实时追踪</p>
     </div>
 
     <div class="quick-actions">
-      <q-btn color="primary" size="lg" icon="newspaper" label="查看最新战报" to="/report" />
+      <a href="/report" class="btn-primary">查看最新战报</a>
     </div>
 
     <div class="features">
       <div class="feature-card">
-        <q-icon name="update" size="48px" color="primary" />
+        <div class="icon">📊</div>
         <h3>实时更新</h3>
         <p>每日中午12点自动爬取最新帖子</p>
       </div>
       <div class="feature-card">
-        <q-icon name="analytics" size="48px" color="secondary" />
+        <div class="icon">📈</div>
         <h3>数据分析</h3>
         <p>关键词提取、用户活跃度统计</p>
       </div>
       <div class="feature-card">
-        <q-icon name="smart_toy" size="48px" color="accent" />
+        <div class="icon">🤖</div>
         <h3>AI 分析</h3>
         <p>智能投资建议与风险评估</p>
       </div>
@@ -32,29 +32,19 @@
       <p>本项目自动爬取Stage1st论坛中东局势专楼(#2275908)的帖子内容，生成可视化战报。</p>
       <p>数据来源：Stage1st论坛 | 生成工具：Claude Code</p>
     </div>
-  </q-page>
+  </div>
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
-import { useQuasar } from 'quasar'
-
-const $q = useQuasar()
-
-onMounted(() => {
-  $q.notify({
-    type: 'info',
-    message: '欢迎来到S1战报中心！',
-    position: 'top',
-    timeout: 2000
-  })
-})
 </script>
 
 <style scoped>
 .index-page {
   max-width: 1200px;
   margin: 0 auto;
+  padding: 20px;
+  min-height: 100vh;
+  background: #f5f5f5;
 }
 
 .hero {
@@ -83,6 +73,23 @@ onMounted(() => {
   margin-bottom: 40px;
 }
 
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 15px 40px;
+  font-size: 1.2rem;
+  border: none;
+  border-radius: 30px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+}
+
 .features {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -98,9 +105,15 @@ onMounted(() => {
   box-shadow: 0 4px 20px rgba(0,0,0,0.1);
 }
 
+.feature-card .icon {
+  font-size: 48px;
+  margin-bottom: 10px;
+}
+
 .feature-card h3 {
   margin: 15px 0 10px;
   font-size: 1.2rem;
+  color: #333;
 }
 
 .feature-card p {
@@ -109,10 +122,11 @@ onMounted(() => {
 }
 
 .info-section {
-  background: #f5f5f5;
+  background: white;
   padding: 30px;
   border-radius: 15px;
   text-align: center;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
 }
 
 .info-section h2 {
